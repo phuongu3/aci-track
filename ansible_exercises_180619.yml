@@ -1,0 +1,244 @@
+---
+- name: ENSURE APPLICATION CONFIGURATION EXISTS
+  hosts: apic
+  connection: local
+  gather_facts: False
+
+  tasks:
+#    - name: Query all tenants
+#      aci_tenant:
+#        host: "{{ ansible_host }}"
+#        username: "{{ username }}"
+#        password: "{{ password }}"
+#        state: query
+#      delegate_to: localhost
+#      register: query_result
+
+#show which parameters are required by link
+#problem with certificate
+#what about host, username and password variables, where from?; change to host instead of hostname etc.
+#http://netdesignarena.com/index.php/2016/06/16/aci-tenant-building-blocks-forwarding-logic/
+#https://docs.ansible.com/ansible/latest/modules/list_of_network_modules.html
+
+#exercise 1, add tenant
+#state present = add
+#https://docs.ansible.com/ansible/2.4/aci_tenant_module.html
+
+    - name: add tenant, ensure application tenants exist
+      aci_tenant:
+        host: "{{ ansible_host }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        state: "present"
+        validate_certs: False
+        tenant: "ex1_new_tenant"
+        description: "tenant created, exercise 1"
+
+#exercise 2, add VRF
+#https://docs.ansible.com/ansible/2.4/aci_vrf_module.html
+
+    - name: add VRF, ensure tenant VRF exists
+      aci_vrf:
+        host: "{{ ansible_host }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        state: present
+        validate_certs: False
+        tenant: "ex1_new_tenant"
+        vrf: "ex2_new_vrf"
+        description: "vrf created, exercise 2"
+        policy_control_preference: enforced
+        policy_control_direction: ingress
+
+#exercise 3, add bd
+#https://docs.ansible.com/ansible/2.4/aci_bd_module.html
+#what is fc?
+
+    - name: add bridge domain, ensure tenant bridge domains exist
+      aci_bd:
+        host: "{{ ansible_host }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        state: present
+        validate_certs: False
+        tenant: "ex1_new_tenant"
+        vrf: "ex2_new_vrf"
+        bd: "ex3_new_bd"
+        description: "bridge domain created, exercise 3"
+
+#exercise 4, add subnet
+#https://docs.ansible.com/ansible/latest/modules/aci_bd_subnet_module.html#aci-bd-subnet-module
+    - name: add subnet, ensure tenant bridge domains have subnets
+      aci_bd_subnet:
+        host: "{{ ansible_host }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        state: present
+        validate_certs: False
+        tenant: "ex1_new_tenant"
+        bd: "ex3_new_bd"
+        gateway: 10.1.1.1
+        mask: 24
+        description: "subnet created, exercise 4"
+#     delegate_to: localhost
+
+#exercise 5, add app profile
+#https://docs.ansible.com/ansible/2.4/aci_ap_module.html
+    - name: add application profile, ensure application exists
+      aci_ap:
+        host: "{{ ansible_host }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        state: present
+        validate_certs: False
+        tenant: "ex1_new_tenant"
+        ap: "ex5_new_ap"
+        description: "application profile created, exercise 5"
+
+#exercise 6, add new EPG
+#https://docs.ansible.com/ansible/2.4/aci_epg_module.html
+#replaced epg: web_epg
+#why does epg1 not go in?, without new name
+    - name: add new EPG 1, ensure application EPGs exist
+      aci_epg:
+        host: "{{ ansible_host }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        validate_certs: False
+        tenant: "ex1_new_tenant"
+        bd: "ex3_new_bd"
+        ap: "ex5_new_ap"
+        epg: "ex6_new_epg1"
+        description: "web intranet EPG 1, exercise 6"
+    
+    - name: add new EPG 2, ensure application EPGs exist
+      aci_epg:
+        host: "{{ ansible_host }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        validate_certs: False
+        tenant: "ex1_new_tenant"
+        bd: "ex3_new_bd"
+        ap: "ex5_new_ap"
+        epg: "ex6_new_epg2"
+        description: "web intranet EPG 2, exercise 6"
+
+#exercise 7, add new contract
+#https://docs.ansible.com/ansible/latest/modules/aci_contract_module.html
+#what is delegate_to
+#is in folders Security Policies
+    - name: add contract, ensure tenant contracts exist
+      aci_contract:
+        host: "{{ ansible_host }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        state: present
+        validate_certs: False
+        tenant: "ex1_new_tenant"
+        contract: "ex7_new_contract"
+        scope: application-profile
+        description: "communication between web-servers and database, exercise 7"
+#     delegate_to: localhost
+
+#exercise 8, add new contract subject
+#https://docs.ansible.com/ansible/2.4/aci_contract_subject_module.html
+    - name: add contract subject, ensure contracts have contract subjects
+      aci_contract_subject:
+        host: "{{ ansible_host }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        state: present
+        validate_certs: False
+        tenant: "ex1_new_tenant"
+        contract: "ex7_new_contract"
+        subject: "ex8_new_contract_subject"
+        reverse_filter: yes
+        priority: level1
+        dscp: unspecified
+        description: "contract subject created, exercise 8"
+      register: query_result
+
+#exercise 9, add new filter
+#https://docs.ansible.com/ansible/2.4/aci_filter_module.html
+    - name: add filter to a tenant, ensure contract subjects have filters
+      aci_filter:
+        host: "{{ ansible_host }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        state: present
+        validate_certs: False
+        tenant: "ex1_new_tenant"
+        filter: "ex9_new_filter"
+        description: "filter for web protocols, exercise 9"
+
+#exercise 10, add filter entry
+#https://docs.ansible.com/ansible/latest/modules/aci_filter_entry_module.html#aci-filter-entry-module
+    - name: add filter entry, ensure filters have filter entries
+      aci_filter_entry:
+        host: "{{ ansible_host }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        state: present
+        validate_certs: False
+        tenant: "ex1_new_tenant"
+        filter: "ex9_new_filter"
+        entry: "ex10_new_filter_entry"
+        ip_protocol: "tcp"
+        ether_type: "ip"
+        dst_port_start: 100
+        dst_port_end: 200
+#        ether_name: "{{  ether_name }}"
+#        icmp_msg_type: "{{ icmp_msg_type }}"
+        description: "filter entry created, exercise 10"
+#     delegate_to: localhost
+
+#exercise 11, bind contract subjects with filter
+#https://docs.ansible.com/ansible/2.4/aci_contract_subject_to_filter_module.html
+#ansible doc does not work?
+#taken from Cisco.. devnet
+#does not show that filter is in?
+    - name: bind contract subjects with filter, ensure contract subjects have filters
+      aci_contract_subject_to_filter:
+        host: "{{ ansible_host }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        state: "present"
+        validate_certs: False
+        tenant: "ex1_new_tenant"
+        contract: "ex7_new_contract"
+        subject: "ex8_new_contract_subject"
+        filter: "ex9_new_filter"
+#        description: "bind contract subjects with filter, exercise 11" #not supported parameter
+#      with_items: "ex7_new_contract"
+#      tags: contract
+
+#exercise 12, bind EPGs to contract
+#https://docs.ansible.com/ansible/latest/modules/aci_epg_to_contract_module.html#aci-epg-to-contract-module
+    - name: add a new contract to EPG binding, ensure EPGs have contracts
+      aci_epg_to_contract:
+        host: "{{ ansible_host }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        state: present
+        validate_certs: False
+        tenant: "ex1_new_tenant"
+        ap: "ex5_new_ap"
+        epg: "ex6_new_epg1"
+        contract: "ex7_new_contract"
+        contract_type: provider
+#        description: "add contract to EPG binding, exercise 12" #not supported parameter
+#     delegate_to: localhost
+
+    - name: add a new contract to EPG binding, ensure EPGs have contracts
+      aci_epg_to_contract:
+        host: "{{ ansible_host }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        state: present
+        validate_certs: False
+        tenant: "ex1_new_tenant"
+        ap: "ex5_new_ap"
+        epg: "ex6_new_epg2"
+        contract: "ex7_new_contract"
+        contract_type: consumer
+#        description: "add contract to EPG binding, exercise 12" #not supported parameter
